@@ -1,0 +1,94 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  generate-docs:
+    name: Generate Protocol Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Install protoc-gen-doc
+        run: |
+          go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@latest
+
+      - name: Generate documentation
+        run: |
+          mkdir -p docs/api
+          
+          # Generate HTML documentation for each service
+          for dir in common user; do
+            if [ -d "$dir" ]; then
+              echo "Generating documentation for $dir..."
+              find "$dir" -name "*.proto" -exec protoc \
+                --proto_path=. \
+                --doc_out=docs/api \
+                --doc_opt=html,"${dir}.html" \
+                {} +
+            fi
+          done
+          
+          # Generate markdown documentation
+          find . -name "*.proto" -exec protoc \
+            --proto_path=. \
+            --doc_out=docs/api \
+            --doc_opt=markdown,protocols.md \
+            {} +
+
+      - name: Create index page
+        run: |
+          cat > docs/api/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Protocol Documentation</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 40px; }
+              h1 { color: #333; }
+              ul { list-style-type: none; padding: 0; }
+              li { margin: 10px 0; }
+              a { color: #0066cc; text-decoration: none; }
+              a:hover { text-decoration: underline; }
+            </style>
+          </head>
+          <body>
+            <h1>Protocol Documentation</h1>
+            <h2>Services</h2>
+            <ul>
+              <li><a href="common.html">Common Types</a></li>
+              <li><a href="user.html">User Service</a></li>
+            </ul>
+            <h2>Downloads</h2>
+            <ul>
+              <li><a href="protocols.md">Full Protocol Documentation (Markdown)</a></li>
+            </ul>
+          </body>
+          </html>
+          EOF
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/api
+          publish_branch: gh-pages

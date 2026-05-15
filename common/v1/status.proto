@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package common.v1;
+
+option go_package = "github.com/andskur/protocols-template/common/v1;commonv1";
+
+// CommonStatus represents standard entity states across all services.
+// Use this enum for consistent status representation.
+enum CommonStatus {
+  // Default unspecified value (required by Buf linting).
+  COMMON_STATUS_UNSPECIFIED = 0;
+  
+  // Entity is active and available for use.
+  COMMON_STATUS_ACTIVE = 1;
+  
+  // Entity is temporarily inactive but not deleted.
+  COMMON_STATUS_INACTIVE = 2;
+  
+  // Entity is soft-deleted and should not be displayed.
+  COMMON_STATUS_DELETED = 3;
+}

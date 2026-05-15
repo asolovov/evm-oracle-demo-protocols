@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package common.v1;
+
+option go_package = "github.com/andskur/protocols-template/common/v1;commonv1";
+
+// UUID represents a universally unique identifier.
+// Stored as 16 bytes in binary format for efficiency.
+message UUID {
+  // UUID value as 16 bytes.
+  // Use this instead of string representation to save space.
+  bytes value = 1;
+}
+
+// Money represents a monetary amount with currency.
+// Uses integer representation to avoid floating-point precision issues.
+message Money {
+  // Amount in the smallest currency unit (e.g., cents for USD).
+  // For USD, $10.50 would be represented as 1050.
+  int64 amount = 1;
+  
+  // ISO 4217 currency code (e.g., USD, EUR, GBP).
+  string currency = 2;
+}
+
+// Address represents a physical mailing address.
+// Follows international address format standards.
+message Address {
+  // Street address line 1 (e.g., "123 Main St").
+  string street = 1;
+  
+  // City or locality name.
+  string city = 2;
+  
+  // State, province, or region.
+  string state = 3;
+  
+  // Postal or ZIP code.
+  string postal_code = 4;
+  
+  // ISO 3166-1 alpha-2 country code (e.g., US, GB, DE).
+  string country = 5;
+}
