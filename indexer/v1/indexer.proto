@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package indexer.v1;
+
+import "common/v1/blockchain.proto";
+import "common/v1/pagination.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/asolovov/evm-oracle-demo-protocols/indexer/v1;indexerv1";
+
+// IndexerService is the chain-watching surface of the oracle.
+// It subscribes to PriceAggregator events on each target chain,
+// persists them, forwards `PriceRequested` to OracleService after
+// the configured confirmation depth, and serves a read-only view
+// of events + request status to rest-api.
+service IndexerService {
+  // ListEvents returns a cursor-paginated slice of indexed events.
+  // Filterable by chain, contract, event name, and block range.
+  rpc ListEvents(ListEventsRequest) returns (Events);
+
+  // GetRequest returns the lifecycle status of one consumer-issued
+  // PriceRequested by its on-chain `req_id`. Returns NOT_FOUND if
+  // the indexer has not observed a matching event yet.
+  rpc GetRequest(GetRequestRequest) returns (RequestStatus);
+
+  // StreamEvents pushes events to the caller as the indexer
+  // observes them. Events are pushed at observation time, BEFORE
+  // they cross the confirmation threshold — consumers should gate
+  // on `meta.confirmations` themselves if that matters.
+  // The stream stays open until the client cancels.
+  rpc StreamEvents(StreamEventsRequest) returns (stream Event);
+}
+
+// ListEventsRequest filters and paginates over persisted events.
+message ListEventsRequest {
+  // Empty = all chains. Otherwise filter by exact chain id match.
+  string chain_id = 1;
+
+  // Hex (0x-prefixed) contract address. Empty = no contract filter.
+  string contract_address = 2;
+
+  // Empty = all event names. Otherwise filter by exact event name
+  // (e.g. "PriceRequested", "PriceFulfilled").
+  string event_name = 3;
+
+  // Inclusive lower bound on block number. 0 = no lower bound.
+  uint64 from_block = 4;
+
+  // Inclusive upper bound on block number. 0 = no upper bound.
+  uint64 to_block = 5;
+
+  // Cursor pagination. Empty cursor + nonzero limit yields the most
+  // recent page; subsequent calls walk back in time.
+  common.v1.CursorPageRequest page = 6;
+}
+
+// StreamEventsRequest selects which events to receive live.
+message StreamEventsRequest {
+  // Empty = all chains. Otherwise filter by exact chain id match.
+  string chain_id = 1;
+
+  // Empty = all configured aggregator contracts. Otherwise filter
+  // by exact (case-insensitive) hex address match.
+  repeated string contract_addresses = 2;
+
+  // Empty = all event names. Otherwise the union of these names.
+  repeated string event_names = 3;
+}
+
+// Events is a cursor-paginated list response.
+message Events {
+  repeated Event events = 1;
+  common.v1.CursorPageResponse page = 2;
+}
+
+// Event is one indexed log entry. The decoded payload is carried as
+// opaque bytes so this contract does not have to track ABI schema
+// changes across the contracts repo; consumers decode using their
+// own ABI bindings.
+message Event {
+  // Standard chain-derived context (cursor, hashes, confirmations,
+  // observed/block timestamps).
+  common.v1.EventMeta meta = 1;
+
+  // Event name as decoded by the indexer (e.g. "PriceRequested").
+  // Provided so consumers can dispatch without decoding `payload`
+  // first.
+  string event_name = 2;
+
+  // ABI-encoded indexed + non-indexed event data, suitable for
+  // unmarshalling with the consumer's ABI bindings. Encoding is
+  // event-specific; the indexer does not interpret the bytes.
+  bytes payload = 3;
+}
+
+// GetRequestRequest selects a request by its on-chain id.
+message GetRequestRequest {
+  // The `req_id` emitted by PriceAggregator.requestPrice.
+  uint64 req_id = 1;
+}
+
+// RequestStatus is the lifecycle of one consumer-issued price
+// request as the indexer has observed it on chain.
+message RequestStatus {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    // Requested but not yet fulfilled on chain.
+    STATUS_PENDING = 1;
+    // Fulfilled — `PriceFulfilled(reqId, ...)` observed.
+    STATUS_FULFILLED = 2;
+    // The fulfilling tx reverted or the aggregator emitted a
+    // terminal failure event for this request.
+    STATUS_FAILED = 3;
+  }
+
+  uint64 req_id = 1;
+
+  // Canonical asset id as decoded from the originating
+  // PriceRequested event.
+  string asset_id = 2;
+
+  Status status = 3;
+
+  // Hex tx hash of the fulfilling tx. Empty unless STATUS_FULFILLED.
+  string fulfilled_tx_hash = 4;
+
+  // Block timestamp of the originating PriceRequested event.
+  google.protobuf.Timestamp requested_at = 5;
+
+  // Block timestamp of the fulfilling tx. Zero unless
+  // STATUS_FULFILLED.
+  google.protobuf.Timestamp fulfilled_at = 6;
+}

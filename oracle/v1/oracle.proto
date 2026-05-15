@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+package oracle.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/asolovov/evm-oracle-demo-protocols/oracle/v1;oraclev1";
+
+// OracleService is the signing + on-chain submission surface of the
+// oracle pipeline. It accepts trigger requests from the indexer
+// (consumer-initiated `PriceRequested` events) and from the internal
+// heartbeat scheduler, fetches the latest aggregation from
+// price-service, signs with the M-of-N reporter set, and submits
+// `fulfillPrice` to the appropriate PriceAggregator contract.
+service OracleService {
+  // TriggerUpdate schedules a signed `fulfillPrice` submission for
+  // one asset on one chain. Idempotent on `req_id` — replaying the
+  // same trigger returns the existing submission record.
+  // req_id = 0 marks the trigger as a heartbeat (no on-chain
+  // consumer request behind it).
+  rpc TriggerUpdate(TriggerUpdateRequest) returns (TriggerUpdateResponse);
+
+  // SetHeartbeat reconfigures the heartbeat schedule for a single
+  // asset on a single chain. Persisted; survives service restart.
+  // Used by the admin tooling, not by user-facing flows.
+  rpc SetHeartbeat(SetHeartbeatRequest) returns (SetHeartbeatResponse);
+
+  // GetSubmissionStatus returns the latest known status of a
+  // submission keyed by `req_id`. Returns NOT_FOUND if no submission
+  // has been recorded for that id.
+  rpc GetSubmissionStatus(GetSubmissionStatusRequest) returns (SubmissionStatus);
+}
+
+// TriggerUpdateRequest asks the oracle to push a fresh price on chain.
+message TriggerUpdateRequest {
+  // The PriceRequested event's request id. 0 indicates a heartbeat
+  // update with no on-chain consumer request behind it.
+  uint64 req_id = 1;
+
+  // Canonical asset id (matches PriceService.asset_id form).
+  string asset_id = 2;
+
+  // CAIP-2 or numeric chain id (e.g. "84532" for Base Sepolia,
+  // "11155420" for Optimism Sepolia). Determines which aggregator
+  // contract receives the call.
+  string chain_id = 3;
+}
+
+// TriggerUpdateResponse acknowledges that the trigger has been
+// accepted into the submission queue. It does NOT confirm on-chain
+// inclusion — poll GetSubmissionStatus or watch the indexer's event
+// stream for that.
+message TriggerUpdateResponse {
+  // True if a new submission was queued. False indicates this
+  // req_id already had a submission on record (idempotent replay).
+  bool accepted = 1;
+
+  // Tx hash if a submission was already on record. Empty when
+  // `accepted = true` — the tx is built and signed after this RPC
+  // returns.
+  string existing_tx_hash = 2;
+}
+
+// SetHeartbeatRequest reconfigures the heartbeat for one asset.
+message SetHeartbeatRequest {
+  string asset_id = 1;
+
+  // Chain whose aggregator the heartbeat targets.
+  string chain_id = 2;
+
+  // Heartbeat interval in seconds. 0 disables the heartbeat for the
+  // (asset, chain) pair.
+  uint32 interval_sec = 3;
+
+  // Deviation threshold in basis points (1 bp = 0.01%). If the new
+  // aggregated price has moved by at least this much since the last
+  // on-chain price, a heartbeat fires regardless of `interval_sec`.
+  // 0 disables the deviation-based path; the heartbeat then runs
+  // strictly on the time schedule.
+  uint32 deviation_bps = 4;
+}
+
+// SetHeartbeatResponse confirms the new heartbeat configuration.
+message SetHeartbeatResponse {
+  // Echoed-back applied configuration (after defaulting / clamping).
+  uint32 applied_interval_sec = 1;
+  uint32 applied_deviation_bps = 2;
+}
+
+// GetSubmissionStatusRequest selects a submission by request id.
+message GetSubmissionStatusRequest {
+  uint64 req_id = 1;
+}
+
+// SubmissionStatus is the lifecycle of a single `fulfillPrice` tx.
+message SubmissionStatus {
+  // Status enum tracks the on-chain lifecycle. Backed by the
+  // `oracle_submissions.status` column.
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    // Tx built and signed but not yet broadcast, or broadcast and
+    // still in the mempool.
+    STATUS_PENDING = 1;
+    // Mined and included with status=1 (success).
+    STATUS_CONFIRMED = 2;
+    // Mined and reverted, or rejected pre-broadcast (e.g. bad nonce,
+    // signature verification failure).
+    STATUS_FAILED = 3;
+    // Dropped from the mempool by the node without ever being mined.
+    // After 3 retries (replace-by-fee) we give up and mark dropped.
+    STATUS_DROPPED = 4;
+  }
+
+  // Hex tx hash (0x-prefixed). Empty while STATUS_PENDING and the tx
+  // has not yet been broadcast.
+  string tx_hash = 1;
+
+  Status status = 2;
+
+  // When the tx was first broadcast (or rebroadcast after replace).
+  // Server-set; never trust client clocks here.
+  google.protobuf.Timestamp submitted_at = 3;
+
+  // Number of replace-by-fee attempts so far. 0 means the tx was
+  // broadcast once and not bumped.
+  int32 retry_count = 4;
+
+  // Free-form error text from the last failed broadcast or revert.
+  // Empty unless STATUS_FAILED or a retry happened.
+  string last_error = 5;
+}

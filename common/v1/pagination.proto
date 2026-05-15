@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package common.v1;
 
-option go_package = "github.com/andskur/protocols-template/common/v1;commonv1";
+option go_package = "github.com/asolovov/evm-oracle-demo-protocols/common/v1;commonv1";
 
 // PageRequest represents offset/limit pagination parameters.
 // Use this for traditional page-based pagination.

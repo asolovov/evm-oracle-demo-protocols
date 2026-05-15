@@ -1,268 +1,141 @@
-# Protocol Definitions Template
+# evm-oracle-demo-protocols
 
-A comprehensive template repository for managing protobuf protocol definitions with both Buf and protoc workflows. Designed for seamless integration into Go microservices via git subtree.
+Protobuf definitions and gRPC service contracts for the **uw-oracle** demo — a pull-based, multi-source price oracle covering 5 crypto and 5 RWA assets. Single source of truth for the wire formats spoken by every Go service in the stack.
 
-> **Built to work with [go-microservice-template](https://github.com/andskur/go-microservice-template)** - This repository provides the protocol definitions layer for microservices built with the go-microservice-template.
+> Forked from [`andskur/protocols-template`](https://github.com/andskur/protocols-template) and trimmed to the surfaces this project needs.
 
-## Features
+## What lives here
 
-- **Dual Workflow Support**: Use modern Buf tooling or traditional protoc
-- **Comprehensive Linting**: Enforces best practices and consistency with Buf
-- **Breaking Change Detection**: Automated validation against previous versions
-- **Common Proto Library**: Reusable types for status, pagination, errors, and more
-- **Automated CI/CD**: GitHub Actions for validation, documentation, and releases
-- **Easy Service Scaffolding**: Scripts to quickly create new service definitions
-- **Semantic Versioning**: Automated version management and changelog generation
+| Package          | Purpose                                                                  |
+|------------------|--------------------------------------------------------------------------|
+| `common/v1`      | Shared types: `EthAddress`, `Hash`, `Wei`, `BlockNumber`, `LogCursor`, `EventMeta`, cursor/offset pagination, structured error envelope. |
+| `price/v1`       | `PriceService` — `GetPrice`, `Subscribe`. Consumed by `oracle-service` and `rest-api`. |
+| `oracle/v1`      | `OracleService` — `TriggerUpdate`, `SetHeartbeat`, `GetSubmissionStatus`. Consumed by `indexer-service` and admin tooling. |
+| `indexer/v1`     | `IndexerService` — `ListEvents`, `GetRequest`, `StreamEvents`. Consumed by `rest-api`. |
 
-## Quick Start
+## Repo layout
 
-### Using as a Template
+```
+.
+├── common/v1/          # Shared messages (blockchain types, pagination, errors)
+├── price/v1/           # Price service contract
+├── oracle/v1/          # Oracle service contract
+├── indexer/v1/         # Indexer service contract
+├── buf.yaml            # buf workspace + STANDARD + PACKAGE_DIRECTORY_MATCH lint
+├── buf.gen.yaml        # buf generate plugin config (protoc-gen-go + grpc-go)
+├── Makefile            # buf-lint, buf-generate, protoc-generate-all, validate
+├── docs/               # Generic buf/protoc usage guides
+├── scripts/            # add-service, validate helpers
+└── .github/workflows/  # CI (lint, breaking, generate), docs, release
+```
 
-1. Click "Use this template" on GitHub to create your own protocols repository
-2. Clone your new repository:
-   ```bash
-   git clone https://github.com/yourusername/your-protocols.git
-   cd your-protocols
-   ```
+Generated `*.pb.go` and `*_grpc.pb.go` files are **not committed** — every downstream service runs codegen at build time. See `.gitignore`.
 
-3. Install required tools:
-   ```bash
-   make install
-   ```
+## Local development
 
-4. Validate the proto files:
-   ```bash
-   make validate
-   ```
-
-### Integrating with Microservices
-
-This repository is designed to work seamlessly with [go-microservice-template](https://github.com/andskur/go-microservice-template).
-
-**Using with go-microservice-template:**
+Install tooling:
 
 ```bash
-# In your microservice created from go-microservice-template
-make proto-setup PROTO_REPO=https://github.com/andskur/protocols-template.git
-
-# Update protocols
-make proto-update
-
-# Generate Go code
-make proto-generate PROTO_PACKAGE=user
+make install   # buf + protoc-gen-go + protoc-gen-go-grpc
 ```
 
-**Using with any Go microservice:**
-
-Add this protocols repository using git subtree (see [docs/INTEGRATION.md](docs/INTEGRATION.md) for detailed instructions).
-
-## Repository Structure
-
-```
-protocols-template/
-├── .github/workflows/    # CI/CD automation
-│   ├── ci.yml           # Linting, validation, code generation
-│   ├── docs.yml         # Auto-generate documentation
-│   └── release.yml      # Semantic versioning releases
-│
-├── common/v1/           # Shared protocol definitions
-│   ├── status.proto     # Common status enums
-│   ├── pagination.proto # Pagination patterns
-│   ├── errors.proto     # Error structures
-│   └── types.proto      # Common types (UUID, Money, Address)
-│
-├── user/v1/             # Example user service
-│   └── user.proto       # User service definition
-│
-├── docs/                # Comprehensive documentation
-│   ├── PROTOCOL_DEVELOPMENT.md
-│   ├── VERSIONING.md
-│   ├── BUF_GUIDE.md
-│   ├── PROTOC_GUIDE.md
-│   └── INTEGRATION.md
-│
-├── scripts/             # Automation scripts
-│   ├── add-service.sh
-│   ├── validate-buf.sh
-│   └── validate-protoc.sh
-│
-├── buf.yaml            # Buf workspace configuration
-├── buf.gen.yaml        # Code generation config
-├── Makefile            # Build targets
-└── AGENTS.md           # AI agent development guide
-```
-
-## Workflows
-
-### Buf Workflow (Recommended)
-
-Modern, fast, and feature-rich workflow using [Buf](https://buf.build):
+Validate before committing:
 
 ```bash
-# Install Buf
-make buf-install
-
-# Lint proto files
-make buf-lint
-
-# Check for breaking changes
-make buf-breaking
-
-# Generate Go code for a specific package
-make buf-generate PACKAGE=user
-
-# Generate for all packages
-make buf-generate-all
+make buf-lint               # STANDARD + PACKAGE_DIRECTORY_MATCH + PACKAGE_VERSION_SUFFIX
+make buf-breaking           # diff against origin/main
+make protoc-validate        # secondary check via raw protoc
+make validate-ci            # all three together (what CI runs)
 ```
 
-### Protoc Workflow (Traditional)
-
-Compatible with traditional protoc tooling:
+Generate Go bindings locally for inspection:
 
 ```bash
-# Install protoc plugins
-make protoc-install
-
-# Validate proto files
-make protoc-validate
-
-# Generate Go code for a specific package
-make protoc-generate PACKAGE=user
-
-# Generate for all packages
-make protoc-generate-all
+make buf-generate-all       # all packages
+make buf-generate PACKAGE=price
+make protoc-generate-all    # alt codegen path
 ```
-
-See [docs/BUF_GUIDE.md](docs/BUF_GUIDE.md) and [docs/PROTOC_GUIDE.md](docs/PROTOC_GUIDE.md) for detailed usage.
-
-## Common Proto Definitions
-
-This template includes reusable proto definitions in the `common/v1` package:
-
-- **status.proto**: Standard entity states (Active, Inactive, Deleted)
-- **pagination.proto**: Both offset/limit and cursor-based pagination
-- **errors.proto**: Structured error responses with field-level details
-- **types.proto**: Common types like UUID, Money, and Address
-
-Import these in your services:
-
-```protobuf
-import "common/v1/status.proto";
-import "common/v1/pagination.proto";
-
-message User {
-  string id = 1;
-  string name = 2;
-  common.v1.CommonStatus status = 3;
-}
-```
-
-See [common/README.md](common/README.md) for details.
-
-## Creating New Services
-
-Use the scaffolding script to create a new service:
-
-```bash
-make add-service NAME=product
-```
-
-This creates:
-- `product/v1/product.proto` with a basic service template
-- `product/README.md` with documentation
-- Updates `buf.yaml` to include the new module
-
-Then customize the generated files and run:
-
-```bash
-make buf-lint
-make buf-generate PACKAGE=product
-```
-
-See [docs/PROTOCOL_DEVELOPMENT.md](docs/PROTOCOL_DEVELOPMENT.md) for detailed guidance.
 
 ## Versioning
 
-This repository follows semantic versioning:
+Repository follows semver. Proto packages carry their own `vN` suffix:
 
-- **Patch** (v1.0.X): Non-breaking changes like new fields, new services
-- **Minor** (v1.X.0): New features, reserved for significant additions
-- **Major** (vX.0.0): Breaking changes like removing fields or changing types
+| Change                                              | Repo bump | Proto bump |
+|-----------------------------------------------------|-----------|------------|
+| New message, new optional field, new RPC            | `vX.Y.Z+1`| same `vN`  |
+| Field rename, type change, RPC removal, semantic break | `vX.Y+1.0` *(pre-1.0)* / `v(X+1).0.0` *(post-1.0)* | new `vN+1` package |
 
-Proto package versions (v1, v2) are separate from repository versions.
+Breaking changes are gated by `buf breaking` in CI against `origin/<base_ref>`. The first PR after the v0.1.0 tag is what locks the baseline; from then on, breaking diffs need a new package version.
 
-Breaking changes are automatically detected in CI. See [docs/VERSIONING.md](docs/VERSIONING.md) for the complete policy.
+## Consuming this repo (downstream Go services)
 
-## Available Make Targets
+Every Go service in the project pulls this repo in as a **git subtree** under `protocols/`. The subtree wire-up is done by the human at service-repo bootstrap time; consumers see the protos as if they were vendored files.
 
-Run `make help` to see all available targets:
+### One-time wire-up (per consuming service)
 
 ```bash
-make help                    # Show all available targets
-make install                 # Install all required tools
-make validate               # Run all validation checks
-make buf-lint               # Lint with Buf
-make buf-breaking           # Check breaking changes
-make buf-generate PACKAGE=x # Generate code with Buf
-make protoc-validate        # Validate with protoc
-make protoc-generate PACKAGE=x # Generate code with protoc
-make add-service NAME=x     # Scaffold new service
-make clean                  # Remove generated files
+# In the consuming service repo, on a feature branch:
+git remote add -f protocols https://github.com/asolovov/evm-oracle-demo-protocols.git
+git subtree add --prefix=protocols protocols main --squash
 ```
 
-## CI/CD
+### Pulling updates
 
-GitHub Actions automatically:
+```bash
+git subtree pull --prefix=protocols protocols main --squash
+```
 
-1. **On Pull Requests**:
-   - Lint all proto files
-   - Detect breaking changes
-   - Validate with both Buf and protoc
-   - Test code generation
+### Generating Go bindings inside the consumer
 
-2. **On Push to Main**:
-   - Run all validations
-   - Generate API documentation
-   - Create versioned releases with changelogs
+The recommended pattern is to drive codegen from the consumer's own Makefile, pointing at `protocols/`:
 
-3. **Documentation**:
-   - Auto-generate protocol docs
-   - Publish to GitHub Pages
+```makefile
+.PHONY: proto-generate
+proto-generate:
+	@buf generate protocols
+```
 
-## Documentation
+…or, with raw `protoc`:
 
-Detailed guides are available in the `docs/` directory:
+```makefile
+proto-generate:
+	@find protocols -name "*.proto" -exec protoc \
+	  --proto_path=protocols \
+	  --go_out=internal/gen --go_opt=paths=source_relative \
+	  --go-grpc_out=internal/gen --go-grpc_opt=paths=source_relative \
+	  {} \;
+```
 
-- **[PROTOCOL_DEVELOPMENT.md](docs/PROTOCOL_DEVELOPMENT.md)**: Adding services, fields, and enums
-- **[VERSIONING.md](docs/VERSIONING.md)**: Semantic versioning and breaking changes
-- **[BUF_GUIDE.md](docs/BUF_GUIDE.md)**: Using Buf for linting and generation
-- **[PROTOC_GUIDE.md](docs/PROTOC_GUIDE.md)**: Using protoc (traditional workflow)
-- **[INTEGRATION.md](docs/INTEGRATION.md)**: Integrating with microservices
-- **[AGENTS.md](AGENTS.md)**: AI agent development guidelines
+### `go.mod` replace (when iterating locally)
 
-## Contributing
+If you need to point a consumer at an in-flight branch of this repo without committing a subtree push:
 
-1. Create a feature branch from `main`
-2. Add or modify proto definitions
-3. Run `make validate` to check your changes
-4. Commit with descriptive messages (follows conventional commits)
-5. Open a pull request
+```go
+// go.mod (consumer)
+require github.com/asolovov/evm-oracle-demo-protocols v0.1.0
 
-CI will automatically validate your changes and check for breaking changes.
+replace github.com/asolovov/evm-oracle-demo-protocols => ../evm-oracle-demo-protocols
+```
+
+…then revert the `replace` once the changes land on `main` here and have been pulled back via `git subtree pull`.
+
+## CI
+
+Every PR runs:
+
+1. `buf lint` — STANDARD + PACKAGE_DIRECTORY_MATCH + PACKAGE_VERSION_SUFFIX
+2. `buf breaking` against `origin/<base_ref>` (PR-only)
+3. `protoc` validation (defence-in-depth, catches buf-vs-protoc disagreements)
+4. `buf generate` + `make protoc-generate-all` smoke tests
+
+All third-party actions in `.github/workflows/` are pinned to commit SHAs (org policy NFR-07).
+
+## Release
+
+Releases are cut manually via the `Release` workflow's `workflow_dispatch` trigger. Choose `patch`, `minor`, or `major`; the workflow validates, tags, and publishes a GitHub Release populated from the commit log.
+
+The `v0.1.0` tag (initial public release) is cut by the human once a downstream consumer has confirmed end-to-end integration. See `CHANGELOG.md`.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Related Projects
-
-- **[go-microservice-template](https://github.com/andskur/go-microservice-template)** - Production-ready Go microservice template with built-in support for this protocols repository. Use them together for a complete microservices solution.
-- [Buf](https://buf.build) - Modern Protobuf tooling
-- [gRPC](https://grpc.io) - High-performance RPC framework
-
-## Support
-
-For issues, questions, or suggestions:
-- Open an issue on GitHub
-- Check existing documentation in `docs/`
-- Review examples in `user/v1/`
+MIT — see [LICENSE](LICENSE).

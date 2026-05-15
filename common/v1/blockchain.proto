@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package common.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/asolovov/evm-oracle-demo-protocols/common/v1;commonv1";
+
+// EthAddress is an EVM account address (20 bytes, big-endian).
+// Wire format is the raw 20 bytes; consumers render hex (0x-prefixed,
+// EIP-55 checksummed) for logs and APIs.
+message EthAddress {
+  // 20 raw bytes. MUST be exactly 20 bytes.
+  bytes value = 1;
+}
+
+// Hash is a 32-byte EVM hash — block hash, tx hash, storage slot, or
+// keccak digest. Wire format is the raw 32 bytes.
+message Hash {
+  // 32 raw bytes. MUST be exactly 32 bytes.
+  bytes value = 1;
+}
+
+// Wei is an unsigned big-integer amount in the chain's smallest unit
+// (wei for ETH-like chains). Carried as a decimal string to avoid the
+// 256-bit overflow that breaks proto3 numeric types — Solidity uint256
+// values cannot fit in int64/uint64 without loss.
+message Wei {
+  // Decimal string, no sign, no leading zeros (except "0" itself).
+  // Example: "1500000000000000000" for 1.5 ETH. Empty string is invalid.
+  string value = 1;
+}
+
+// BlockNumber identifies a block by its height.
+// Sufficient for finalized observations; pair with `Hash` if the call
+// site needs to disambiguate across reorgs.
+message BlockNumber {
+  uint64 value = 1;
+}
+
+// LogCursor uniquely identifies a single emitted log within a chain.
+// Use this for resumable indexing and idempotent event handling —
+// (chain_id, block_number, tx_index, log_index) is the canonical
+// natural key for an EVM log.
+message LogCursor {
+  // CAIP-2 chain id or numeric chain id (e.g. "84532" for Base Sepolia).
+  string chain_id = 1;
+
+  // Block height where the log was emitted.
+  uint64 block_number = 2;
+
+  // Transaction index within the block (0-based).
+  uint32 tx_index = 3;
+
+  // Log index within the transaction (0-based).
+  uint32 log_index = 4;
+}
+
+// EventMeta carries the chain-derived context that every domain event
+// needs to be auditable: where it came from, when we saw it, and how
+// confirmed it is at observation time.
+message EventMeta {
+  // Cursor to the underlying log entry.
+  LogCursor cursor = 1;
+
+  // Hash of the block containing the log. Reorg-detection requires it.
+  Hash block_hash = 2;
+
+  // Hash of the transaction that emitted the log.
+  Hash tx_hash = 3;
+
+  // Address of the contract that emitted the log.
+  EthAddress contract_address = 4;
+
+  // Wall-clock time at which the indexer observed (decoded + persisted)
+  // this event. NOT the block timestamp — use block_timestamp for that.
+  google.protobuf.Timestamp observed_at = 5;
+
+  // Block timestamp as reported by the node, in UTC.
+  google.protobuf.Timestamp block_timestamp = 6;
+
+  // Number of blocks built on top of `cursor.block_number` at the time
+  // this message was produced. Consumers gate on a minimum depth before
+  // acting on the event (see indexer-service config).
+  uint32 confirmations = 7;
+}
