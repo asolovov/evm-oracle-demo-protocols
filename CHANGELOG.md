@@ -7,14 +7,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [0.1.0] — TBD
 
-Initial release. Cut by the human after task 05 (`uw-oracle-price-service`) confirms downstream subtree integration end-to-end.
+Initial release. Cut by the human after task 05 (`evm-oracle-demo-price-service`) confirms downstream subtree integration end-to-end.
 
 ### Added
 
-- `common/v1/blockchain.proto` — EVM-native types: `EthAddress`, `Hash`, `Wei` (decimal-string to avoid uint256 overflow), `BlockNumber`, `LogCursor`, `EventMeta`.
-- `price/v1/price.proto` — `PriceService` with `GetPrice` and `Subscribe`; `AggregatedPrice` carries median + per-source `SourceContribution` breakdown.
-- `oracle/v1/oracle.proto` — `OracleService` with `TriggerUpdate`, `SetHeartbeat`, `GetSubmissionStatus`; `SubmissionStatus.Status` covers the pending/confirmed/failed/dropped tx lifecycle.
-- `indexer/v1/indexer.proto` — `IndexerService` with `ListEvents`, `GetRequest`, and `StreamEvents`; opaque `Event.payload` lets consumers decode with their own ABI bindings.
+- `price/v1/price.proto` — `PriceService.GetPrice` + `Subscribe`. Prices flow as IEEE-754 `double` end-to-end inside the off-chain pipeline; conversion to on-chain int256 happens once, in oracle-service.
+- `oracle/v1/oracle.proto` — `OracleService.SetHeartbeat` (admin), `GetSubmissionStatus`, `ListSubmissions`. No `TriggerUpdate` RPC: oracle-service subscribes to `indexer.StreamEvents` for trigger events; heartbeats are internal. `SubmissionStatus.Status` covers pending / confirmed / failed / dropped.
+- `indexer/v1/indexer.proto` — `IndexerService.ListEvents`, `StreamEvents`, `GetRequest`. Single-chain. Typed `oneof` over `PriceRequestedEvent` / `PriceFulfilledEvent` / `AssetRegisteredEvent`, discriminated by `EventKind`. `StreamEvents` emits only past-confirmation events.
+- Repo-wide scalar conventions (addresses, hashes, uint256 / int256 as strings; off-chain prices as `double`; native proto integers for non-amount counters); documented in README.
 - `buf breaking` baseline against `origin/<base_ref>`; first PR after this tag locks the wire format.
 - All `.github/workflows/` actions SHA-pinned (NFR-07).
 

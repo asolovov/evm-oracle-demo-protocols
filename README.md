@@ -1,23 +1,52 @@
 # evm-oracle-demo-protocols
 
-Protobuf definitions and gRPC service contracts for the **uw-oracle** demo — a pull-based, multi-source price oracle covering 5 crypto and 5 RWA assets. Single source of truth for the wire formats spoken by every Go service in the stack.
+Protobuf definitions and gRPC service contracts for the **evm-oracle-demo** project — a pull-based, multi-source price oracle covering 5 crypto and 5 RWA assets on a single EVM testnet. Single source of truth for the wire formats spoken by every Go service in the stack.
 
 > Forked from [`andskur/protocols-template`](https://github.com/andskur/protocols-template) and trimmed to the surfaces this project needs.
 
 ## What lives here
 
-| Package          | Purpose                                                                  |
-|------------------|--------------------------------------------------------------------------|
-| `common/v1`      | Shared types: `EthAddress`, `Hash`, `Wei`, `BlockNumber`, `LogCursor`, `EventMeta`, cursor/offset pagination, structured error envelope. |
-| `price/v1`       | `PriceService` — `GetPrice`, `Subscribe`. Consumed by `oracle-service` and `rest-api`. |
-| `oracle/v1`      | `OracleService` — `TriggerUpdate`, `SetHeartbeat`, `GetSubmissionStatus`. Consumed by `indexer-service` and admin tooling. |
-| `indexer/v1`     | `IndexerService` — `ListEvents`, `GetRequest`, `StreamEvents`. Consumed by `rest-api`. |
+| Package      | Purpose                                                                                                                |
+|--------------|------------------------------------------------------------------------------------------------------------------------|
+| `common/v1`  | `PageRequest` / `PageResponse` (offset pagination), `CursorPageRequest` / `CursorPageResponse`, structured error envelope. |
+| `price/v1`   | `PriceService` — `GetPrice`, `Subscribe`. Consumed by `oracle-service` and `rest-api`.                                 |
+| `oracle/v1`  | `OracleService` — `SetHeartbeat` (admin), `GetSubmissionStatus`, `ListSubmissions`. Consumed by admin tooling + dashboard. |
+| `indexer/v1` | `IndexerService` — `ListEvents`, `StreamEvents`, `GetRequest`. Consumed by `oracle-service` (as trigger source) and `rest-api`. |
+
+There is intentionally no `common/v1/blockchain.proto`. EVM scalars (addresses, hashes, uint256 / int256) are carried inline per-message using the conventions below.
+
+## Scalar conventions
+
+Pick once, hold the line — every proto in this repo follows these rules:
+
+| Concept                                       | Wire type                  | Notes                                                                                  |
+|-----------------------------------------------|----------------------------|----------------------------------------------------------------------------------------|
+| `address` / `common.Address`                  | `string`                   | `0x`-prefixed, lowercase hex.                                                          |
+| `bytes32` / `common.Hash` (block, tx, asset)  | `string`                   | `0x`-prefixed, lowercase hex.                                                          |
+| `uint256` / `int256` / anything from `*big.Int` | `string`                 | Base-10 decimal. No `uint64` shortcuts even when the value would fit — keeps `req_id`, `price`, `timestamp` uniform across messages. |
+| `uint32` / `uint64` / `uint80` non-amounts    | native proto integer       | Used for block numbers, log indices, confirmations, ages, retry counts.                |
+| USD prices off-chain (price-service)          | `double`                   | Aggregation runs in IEEE-754 throughout the off-chain pipeline.                        |
+| USD prices on-chain (oracle-service emits)    | `string` (decimal int256)  | Chainlink's 8-decimal scale. Float→int conversion lives only in oracle-service.        |
+| Wall-clock timestamps                         | `google.protobuf.Timestamp` | Used for `observed_at`, `aggregated_at`, `submitted_at`, `requested_at`, etc.          |
+| Contract-emitted timestamp fields (`uint256` seconds) | `string`           | Echoes the raw contract value; clients parse + convert if they want a `Timestamp`.     |
+
+## Trigger model — read this before changing `oracle/v1` or `indexer/v1`
+
+`oracle-service` does **not** expose a `TriggerUpdate` RPC. Instead it is a long-lived client of:
+
+```
+indexer.StreamEvents(kinds=[EVENT_KIND_PRICE_REQUESTED])
+```
+
+Every event delivered on that stream is already past the indexer's confirmation threshold, reorg-handled, and uniquely keyed by `req_id`. The stream **is** the trigger. Heartbeats are produced by an oracle-internal scheduler (no RPC). The only gRPC surface oracle-service exposes is admin (`SetHeartbeat`) and read (`GetSubmissionStatus`, `ListSubmissions`).
+
+Single-chain only: this project deploys on one EVM testnet at a time. Indexer events carry no `chain_id`; if multi-chain ever lands, that is a v2 package bump.
 
 ## Repo layout
 
 ```
 .
-├── common/v1/          # Shared messages (blockchain types, pagination, errors)
+├── common/v1/          # PageRequest, CursorPageRequest, ErrorResponse
 ├── price/v1/           # Price service contract
 ├── oracle/v1/          # Oracle service contract
 ├── indexer/v1/         # Indexer service contract
@@ -60,9 +89,9 @@ make protoc-generate-all    # alt codegen path
 
 Repository follows semver. Proto packages carry their own `vN` suffix:
 
-| Change                                              | Repo bump | Proto bump |
-|-----------------------------------------------------|-----------|------------|
-| New message, new optional field, new RPC            | `vX.Y.Z+1`| same `vN`  |
+| Change                                              | Repo bump                                          | Proto bump         |
+|-----------------------------------------------------|----------------------------------------------------|--------------------|
+| New message, new optional field, new RPC            | `vX.Y.Z+1`                                         | same `vN`          |
 | Field rename, type change, RPC removal, semantic break | `vX.Y+1.0` *(pre-1.0)* / `v(X+1).0.0` *(post-1.0)* | new `vN+1` package |
 
 Breaking changes are gated by `buf breaking` in CI against `origin/<base_ref>`. The first PR after the v0.1.0 tag is what locks the baseline; from then on, breaking diffs need a new package version.
