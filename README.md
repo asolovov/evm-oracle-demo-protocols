@@ -53,7 +53,6 @@ Single-chain only: this project deploys on one EVM testnet at a time. Indexer ev
 ├── buf.yaml            # buf workspace + STANDARD + PACKAGE_DIRECTORY_MATCH lint
 ├── buf.gen.yaml        # buf generate plugin config (protoc-gen-go + grpc-go)
 ├── Makefile            # buf-lint, buf-generate, protoc-generate-all, validate
-├── docs/               # Generic buf/protoc usage guides
 ├── scripts/            # add-service, validate helpers
 └── .github/workflows/  # CI (lint, breaking, generate), docs, release
 ```
