@@ -31,7 +31,7 @@ mkdir -p "$SERVICE_NAME/v1"
 # Create proto file with template
 PROTO_FILE="$SERVICE_NAME/v1/$SERVICE_NAME.proto"
 PACKAGE_NAME="${SERVICE_NAME}.v1"
-GO_PACKAGE="github.com/andskur/protocols-template/${SERVICE_NAME}/v1;${SERVICE_NAME}v1"
+GO_PACKAGE="github.com/asolovov/evm-oracle-demo-protocols/${SERVICE_NAME}/v1;${SERVICE_NAME}v1"
 
 # Convert service name to PascalCase for message names
 SERVICE_PASCAL=$(echo "$SERVICE_NAME" | sed -r 's/(^|_)([a-z])/\U\2/g')
@@ -144,7 +144,7 @@ message Create${SERVICE_PASCAL}Response {
 ## Usage Example
 
 \`\`\`go
-import ${SERVICE_NAME}v1 "github.com/andskur/protocols-template/${SERVICE_NAME}/v1"
+import ${SERVICE_NAME}v1 "github.com/asolovov/evm-oracle-demo-protocols/${SERVICE_NAME}/v1"
 
 // Create a new ${SERVICE_NAME}
 req := &${SERVICE_NAME}v1.Create${SERVICE_PASCAL}Request{

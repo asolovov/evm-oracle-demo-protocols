@@ -4,7 +4,7 @@ package common.v1;
 
 import "google/protobuf/any.proto";
 
-option go_package = "github.com/andskur/protocols-template/common/v1;commonv1";
+option go_package = "github.com/asolovov/evm-oracle-demo-protocols/common/v1;commonv1";
 
 // ErrorDetail provides structured information about a single error.
 // Can be used to represent validation errors, business logic errors, etc.

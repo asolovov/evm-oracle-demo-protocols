@@ -44,7 +44,7 @@ buf-format: ## Format proto files using Buf
 buf-generate: ## Generate Go code using Buf (requires PACKAGE)
 ifndef PACKAGE
 	@echo "Error: PACKAGE parameter is required"
-	@echo "Usage: make buf-generate PACKAGE=user"
+	@echo "Usage: make buf-generate PACKAGE=price"
 	@exit 1
 endif
 	@echo "Generating Go code for $(PACKAGE) using Buf..."
@@ -70,7 +70,7 @@ endif
 protoc-generate: ## Generate Go code using protoc (requires PACKAGE)
 ifndef PACKAGE
 	@echo "Error: PACKAGE parameter is required"
-	@echo "Usage: make protoc-generate PACKAGE=user"
+	@echo "Usage: make protoc-generate PACKAGE=price"
 	@exit 1
 endif
 	@echo "Generating Go code for $(PACKAGE) using protoc..."
@@ -86,7 +86,7 @@ endif
 .PHONY: protoc-generate-all
 protoc-generate-all: ## Generate Go code for all packages using protoc
 	@echo "Generating Go code for all packages using protoc..."
-	@for dir in common user; do \
+	@for dir in common price oracle indexer; do \
 		echo "Generating $$dir..."; \
 		$(MAKE) protoc-generate PACKAGE=$$dir; \
 	done
