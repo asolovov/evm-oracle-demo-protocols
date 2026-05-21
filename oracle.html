@@ -175,46 +175,43 @@
         
           
           <li>
-            <a href="#common%2fv1%2ferrors.proto">common/v1/errors.proto</a>
+            <a href="#oracle%2fv1%2foracle.proto">oracle/v1/oracle.proto</a>
             <ul>
               
                 <li>
-                  <a href="#common.v1.ErrorDetail"><span class="badge">M</span>ErrorDetail</a>
+                  <a href="#oracle.v1.GetSubmissionStatusRequest"><span class="badge">M</span>GetSubmissionStatusRequest</a>
                 </li>
               
                 <li>
-                  <a href="#common.v1.ErrorResponse"><span class="badge">M</span>ErrorResponse</a>
-                </li>
-              
-              
-              
-              
-            </ul>
-          </li>
-        
-          
-          <li>
-            <a href="#common%2fv1%2fpagination.proto">common/v1/pagination.proto</a>
-            <ul>
-              
-                <li>
-                  <a href="#common.v1.CursorPageRequest"><span class="badge">M</span>CursorPageRequest</a>
+                  <a href="#oracle.v1.ListSubmissionsRequest"><span class="badge">M</span>ListSubmissionsRequest</a>
                 </li>
               
                 <li>
-                  <a href="#common.v1.CursorPageResponse"><span class="badge">M</span>CursorPageResponse</a>
+                  <a href="#oracle.v1.ListSubmissionsResponse"><span class="badge">M</span>ListSubmissionsResponse</a>
                 </li>
               
                 <li>
-                  <a href="#common.v1.PageRequest"><span class="badge">M</span>PageRequest</a>
+                  <a href="#oracle.v1.SetHeartbeatRequest"><span class="badge">M</span>SetHeartbeatRequest</a>
                 </li>
               
                 <li>
-                  <a href="#common.v1.PageResponse"><span class="badge">M</span>PageResponse</a>
+                  <a href="#oracle.v1.SetHeartbeatResponse"><span class="badge">M</span>SetHeartbeatResponse</a>
+                </li>
+              
+                <li>
+                  <a href="#oracle.v1.SubmissionStatus"><span class="badge">M</span>SubmissionStatus</a>
+                </li>
+              
+              
+                <li>
+                  <a href="#oracle.v1.SubmissionStatus.Status"><span class="badge">E</span>SubmissionStatus.Status</a>
                 </li>
               
               
               
+                <li>
+                  <a href="#oracle.v1.OracleService"><span class="badge">S</span>OracleService</a>
+                </li>
               
             </ul>
           </li>
@@ -226,13 +223,13 @@
     
       
       <div class="file-heading">
-        <h2 id="common/v1/errors.proto">common/v1/errors.proto</h2><a href="#title">Top</a>
+        <h2 id="oracle/v1/oracle.proto">oracle/v1/oracle.proto</h2><a href="#title">Top</a>
       </div>
       <p></p>
 
       
-        <h3 id="common.v1.ErrorDetail">ErrorDetail</h3>
-        <p>ErrorDetail provides structured information about a single error.</p><p>Can be used to represent validation errors, business logic errors, etc.</p>
+        <h3 id="oracle.v1.GetSubmissionStatusRequest">GetSubmissionStatusRequest</h3>
+        <p>GetSubmissionStatusRequest selects a submission by exactly one of</p><p>req_id or tx_hash. Sending both, or neither, is rejected with</p><p>INVALID_ARGUMENT.</p>
 
         
           <table class="field-table">
@@ -242,34 +239,20 @@
             <tbody>
               
                 <tr>
-                  <td>code</td>
+                  <td>req_id</td>
                   <td><a href="#string">string</a></td>
                   <td></td>
-                  <td><p>Error code (e.g., INVALID_ARGUMENT, NOT_FOUND, PERMISSION_DENIED).
-Should follow gRPC status codes or custom application codes. </p></td>
+                  <td><p>uint256 as base-10 decimal string. Empty when querying by
+tx_hash. &#34;0&#34; is reserved for heartbeat submissions and cannot
+be looked up here — use tx_hash for those. </p></td>
                 </tr>
               
                 <tr>
-                  <td>message</td>
+                  <td>tx_hash</td>
                   <td><a href="#string">string</a></td>
                   <td></td>
-                  <td><p>Human-readable error message. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>field</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p>Field name that caused the error (optional).
-Useful for validation errors to identify which field failed. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>metadata</td>
-                  <td><a href="#google.protobuf.Any">google.protobuf.Any</a></td>
-                  <td></td>
-                  <td><p>Additional context-specific metadata (optional).
-Can contain any serialized message type for rich error details. </p></td>
+                  <td><p>32-byte tx hash, 0x-prefixed lowercase hex. Empty when querying
+by req_id. </p></td>
                 </tr>
               
             </tbody>
@@ -279,8 +262,8 @@ Can contain any serialized message type for rich error details. </p></td>
 
         
       
-        <h3 id="common.v1.ErrorResponse">ErrorResponse</h3>
-        <p>ErrorResponse provides a consistent structure for error responses.</p><p>Use this for returning multiple errors in a single response.</p>
+        <h3 id="oracle.v1.ListSubmissionsRequest">ListSubmissionsRequest</h3>
+        <p>ListSubmissionsRequest pages over submissions in descending</p><p>submitted_at order. `asset_id` is an optional exact-match filter.</p>
 
         
           <table class="field-table">
@@ -290,173 +273,178 @@ Can contain any serialized message type for rich error details. </p></td>
             <tbody>
               
                 <tr>
-                  <td>errors</td>
-                  <td><a href="#common.v1.ErrorDetail">ErrorDetail</a></td>
+                  <td>asset_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>page</td>
+                  <td><a href="#common.v1.PageRequest">common.v1.PageRequest</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="oracle.v1.ListSubmissionsResponse">ListSubmissionsResponse</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>submissions</td>
+                  <td><a href="#oracle.v1.SubmissionStatus">SubmissionStatus</a></td>
                   <td>repeated</td>
-                  <td><p>List of errors that occurred.
-Multiple errors allow returning all validation failures at once. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>trace_id</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p>Trace ID for correlating errors across services.
-Should match the trace ID in distributed tracing systems. </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-
-      
-
-      
-
-      
-    
-      
-      <div class="file-heading">
-        <h2 id="common/v1/pagination.proto">common/v1/pagination.proto</h2><a href="#title">Top</a>
-      </div>
-      <p></p>
-
-      
-        <h3 id="common.v1.CursorPageRequest">CursorPageRequest</h3>
-        <p>CursorPageRequest represents cursor-based pagination parameters.</p><p>Use this for efficient pagination of large datasets or real-time data.</p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>cursor</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p>Opaque cursor string from previous response.
-Empty string for first page. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>limit</td>
-                  <td><a href="#int32">int32</a></td>
-                  <td></td>
-                  <td><p>Maximum number of items to return. </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-        <h3 id="common.v1.CursorPageResponse">CursorPageResponse</h3>
-        <p>CursorPageResponse contains cursor pagination metadata.</p><p>Include this in list responses when using CursorPageRequest.</p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>next_cursor</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p>Cursor for fetching the next page.
-Empty if no more pages available. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>has_more</td>
-                  <td><a href="#bool">bool</a></td>
-                  <td></td>
-                  <td><p>Indicates if more results are available. </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-        <h3 id="common.v1.PageRequest">PageRequest</h3>
-        <p>PageRequest represents offset/limit pagination parameters.</p><p>Use this for traditional page-based pagination.</p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>page</td>
-                  <td><a href="#int32">int32</a></td>
-                  <td></td>
-                  <td><p>Page number (1-indexed). First page is 1. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>page_size</td>
-                  <td><a href="#int32">int32</a></td>
-                  <td></td>
-                  <td><p>Number of items per page. Maximum should be enforced by service. </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-        <h3 id="common.v1.PageResponse">PageResponse</h3>
-        <p>PageResponse contains metadata about paginated results.</p><p>Include this in list responses when using PageRequest.</p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>total_count</td>
-                  <td><a href="#int32">int32</a></td>
-                  <td></td>
-                  <td><p>Total number of items across all pages. </p></td>
+                  <td><p> </p></td>
                 </tr>
               
                 <tr>
                   <td>page</td>
-                  <td><a href="#int32">int32</a></td>
+                  <td><a href="#common.v1.PageResponse">common.v1.PageResponse</a></td>
                   <td></td>
-                  <td><p>Current page number (1-indexed). </p></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="oracle.v1.SetHeartbeatRequest">SetHeartbeatRequest</h3>
+        <p>SetHeartbeatRequest reconfigures the heartbeat for one asset.</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>asset_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
                 </tr>
               
                 <tr>
-                  <td>page_size</td>
-                  <td><a href="#int32">int32</a></td>
+                  <td>interval_sec</td>
+                  <td><a href="#uint32">uint32</a></td>
                   <td></td>
-                  <td><p>Number of items per page. </p></td>
+                  <td><p>Heartbeat interval in seconds. 0 disables the heartbeat for
+this asset. </p></td>
                 </tr>
               
                 <tr>
-                  <td>total_pages</td>
-                  <td><a href="#int32">int32</a></td>
+                  <td>deviation_bps</td>
+                  <td><a href="#uint32">uint32</a></td>
                   <td></td>
-                  <td><p>Total number of pages available. </p></td>
+                  <td><p>Deviation threshold in basis points (1 bp = 0.01%). If the
+newly aggregated price has moved by at least this much since
+the last on-chain price, a heartbeat fires regardless of
+`interval_sec`. 0 disables the deviation-based path; the
+heartbeat then runs strictly on the time schedule. </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="oracle.v1.SetHeartbeatResponse">SetHeartbeatResponse</h3>
+        <p>SetHeartbeatResponse is intentionally empty — the configuration</p><p>is keyed by asset_id and idempotent on replay.</p>
+
+        
+
+        
+      
+        <h3 id="oracle.v1.SubmissionStatus">SubmissionStatus</h3>
+        <p>SubmissionStatus is the lifecycle of one `fulfillPrice` tx.</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>req_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>uint256 as base-10 decimal string. &#34;0&#34; for heartbeat
+submissions (no consumer request behind them). </p></td>
+                </tr>
+              
+                <tr>
+                  <td>asset_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>Canonical asset id (matches PriceService.asset_id form). </p></td>
+                </tr>
+              
+                <tr>
+                  <td>tx_hash</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>32-byte tx hash, 0x-prefixed lowercase hex. Empty while
+STATUS_PENDING and the tx has not yet been broadcast. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>submitted_price</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>int256 as base-10 decimal string in Chainlink&#39;s 8-decimal
+scale (e.g. &#34;345020000000&#34; represents a USD price of 3450.20).
+Empty until the price has been signed. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>submitted_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p>When the tx was first broadcast (or rebroadcast after replace).
+Server-set; never trust client clocks here. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>status</td>
+                  <td><a href="#oracle.v1.SubmissionStatus.Status">SubmissionStatus.Status</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>retry_count</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p>Number of replace-by-fee attempts so far. 0 means the tx was
+broadcast once and not bumped. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>last_error</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>Free-form error text from the last failed broadcast or revert.
+Empty unless STATUS_FAILED or a retry happened. </p></td>
                 </tr>
               
             </tbody>
@@ -468,10 +456,92 @@ Empty if no more pages available. </p></td>
       
 
       
-
+        <h3 id="oracle.v1.SubmissionStatus.Status">SubmissionStatus.Status</h3>
+        <p></p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>STATUS_UNSPECIFIED</td>
+                <td>0</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>STATUS_PENDING</td>
+                <td>1</td>
+                <td><p>Tx built and signed but not yet broadcast, or broadcast and
+still in the mempool.</p></td>
+              </tr>
+            
+              <tr>
+                <td>STATUS_CONFIRMED</td>
+                <td>2</td>
+                <td><p>Mined and included with status=1 (success).</p></td>
+              </tr>
+            
+              <tr>
+                <td>STATUS_FAILED</td>
+                <td>3</td>
+                <td><p>Mined and reverted, or rejected pre-broadcast (e.g. bad
+nonce, signature verification failure).</p></td>
+              </tr>
+            
+              <tr>
+                <td>STATUS_DROPPED</td>
+                <td>4</td>
+                <td><p>Dropped from the mempool by the node without ever being
+mined. After 3 replace-by-fee retries we give up and mark
+dropped.</p></td>
+              </tr>
+            
+          </tbody>
+        </table>
       
 
       
+
+      
+        <h3 id="oracle.v1.OracleService">OracleService</h3>
+        <p>OracleService is the signing + on-chain submission surface of the</p><p>oracle pipeline. Its gRPC surface is admin + read only — there is</p><p>no `TriggerUpdate` RPC.</p><p>Trigger model: oracle-service is a long-lived client of</p><p>`indexer.StreamEvents` with `kinds=[EVENT_KIND_PRICE_REQUESTED]`.</p><p>Each event delivered on that stream is already past-confirmations,</p><p>reorg-handled, and idempotency-keyed by `req_id`. The stream IS</p><p>the trigger; no separate RPC is needed.</p><p>Heartbeat updates are produced by an oracle-internal scheduler;</p><p>they do not enter via gRPC either. Operators reconfigure the</p><p>heartbeat schedule with SetHeartbeat below.</p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Method Name</td><td>Request Type</td><td>Response Type</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>SetHeartbeat</td>
+                <td><a href="#oracle.v1.SetHeartbeatRequest">SetHeartbeatRequest</a></td>
+                <td><a href="#oracle.v1.SetHeartbeatResponse">SetHeartbeatResponse</a></td>
+                <td><p>SetHeartbeat — admin: configure the per-asset heartbeat schedule.
+Persisted; survives service restart.</p></td>
+              </tr>
+            
+              <tr>
+                <td>GetSubmissionStatus</td>
+                <td><a href="#oracle.v1.GetSubmissionStatusRequest">GetSubmissionStatusRequest</a></td>
+                <td><a href="#oracle.v1.SubmissionStatus">SubmissionStatus</a></td>
+                <td><p>GetSubmissionStatus — read: status of a specific submission,
+looked up either by req_id (consumer-issued requests) or by
+tx_hash (heartbeat submissions, where req_id = &#34;0&#34;).</p></td>
+              </tr>
+            
+              <tr>
+                <td>ListSubmissions</td>
+                <td><a href="#oracle.v1.ListSubmissionsRequest">ListSubmissionsRequest</a></td>
+                <td><a href="#oracle.v1.ListSubmissionsResponse">ListSubmissionsResponse</a></td>
+                <td><p>ListSubmissions — read: paginated submission history for the
+dashboard and for debugging.</p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+
+        
     
 
     <h2 id="scalar-value-types">Scalar Value Types</h2>

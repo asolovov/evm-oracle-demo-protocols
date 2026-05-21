@@ -175,26 +175,30 @@
         
           
           <li>
-            <a href="#user%2fv1%2fuser.proto">user/v1/user.proto</a>
+            <a href="#price%2fv1%2fprice.proto">price/v1/price.proto</a>
             <ul>
               
                 <li>
-                  <a href="#user.v1.CreateUserRequest"><span class="badge">M</span>CreateUserRequest</a>
+                  <a href="#price.v1.AggregatedPrice"><span class="badge">M</span>AggregatedPrice</a>
                 </li>
               
                 <li>
-                  <a href="#user.v1.GetUserRequest"><span class="badge">M</span>GetUserRequest</a>
+                  <a href="#price.v1.GetPriceRequest"><span class="badge">M</span>GetPriceRequest</a>
                 </li>
               
                 <li>
-                  <a href="#user.v1.User"><span class="badge">M</span>User</a>
+                  <a href="#price.v1.SourceContribution"><span class="badge">M</span>SourceContribution</a>
+                </li>
+              
+                <li>
+                  <a href="#price.v1.SubscribeRequest"><span class="badge">M</span>SubscribeRequest</a>
                 </li>
               
               
               
               
                 <li>
-                  <a href="#user.v1.UserService"><span class="badge">S</span>UserService</a>
+                  <a href="#price.v1.PriceService"><span class="badge">S</span>PriceService</a>
                 </li>
               
             </ul>
@@ -207,13 +211,13 @@
     
       
       <div class="file-heading">
-        <h2 id="user/v1/user.proto">user/v1/user.proto</h2><a href="#title">Top</a>
+        <h2 id="price/v1/price.proto">price/v1/price.proto</h2><a href="#title">Top</a>
       </div>
       <p></p>
 
       
-        <h3 id="user.v1.CreateUserRequest">CreateUserRequest</h3>
-        <p>CreateUserRequest is the request message for CreateUser.</p>
+        <h3 id="price.v1.AggregatedPrice">AggregatedPrice</h3>
+        <p>AggregatedPrice is the median across the live source set for an</p><p>asset at a point in time, with the per-source breakdown the</p><p>dashboard renders.</p>
 
         
           <table class="field-table">
@@ -223,100 +227,155 @@
             <tbody>
               
                 <tr>
-                  <td>email</td>
+                  <td>asset_id</td>
                   <td><a href="#string">string</a></td>
                   <td></td>
-                  <td><p>User&#39;s email address (required). </p></td>
+                  <td><p>Canonical asset id (see GetPriceRequest.asset_id). </p></td>
                 </tr>
               
                 <tr>
-                  <td>name</td>
-                  <td><a href="#string">string</a></td>
+                  <td>median_price</td>
+                  <td><a href="#double">double</a></td>
                   <td></td>
-                  <td><p>User&#39;s display name (required). </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-        <h3 id="user.v1.GetUserRequest">GetUserRequest</h3>
-        <p>GetUserRequest is the request message for GetUser.</p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>id</td>
-                  <td><a href="#common.v1.UUID">common.v1.UUID</a></td>
-                  <td></td>
-                  <td><p>ID of the user to retrieve (UUID, 16 bytes). </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-
-          
-
-        
-      
-        <h3 id="user.v1.User">User</h3>
-        <p>User represents a user account in the system.</p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>id</td>
-                  <td><a href="#common.v1.UUID">common.v1.UUID</a></td>
-                  <td></td>
-                  <td><p>Unique user identifier (UUID, 16 bytes). </p></td>
+                  <td><p>Median across included sources, in USD, as an IEEE-754 double.
+Always non-negative. </p></td>
                 </tr>
               
                 <tr>
-                  <td>email</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p>User&#39;s email address (must be unique). </p></td>
-                </tr>
-              
-                <tr>
-                  <td>name</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p>User&#39;s display name. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>status</td>
-                  <td><a href="#common.v1.CommonStatus">common.v1.CommonStatus</a></td>
-                  <td></td>
-                  <td><p>User&#39;s account status. </p></td>
-                </tr>
-              
-                <tr>
-                  <td>created_at</td>
+                  <td>aggregated_at</td>
                   <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
                   <td></td>
-                  <td><p>Timestamp when the user was created. </p></td>
+                  <td><p>Wall-clock time when this aggregation was produced. </p></td>
                 </tr>
               
                 <tr>
-                  <td>updated_at</td>
+                  <td>sources</td>
+                  <td><a href="#price.v1.SourceContribution">SourceContribution</a></td>
+                  <td>repeated</td>
+                  <td><p>Per-source contributions. Includes both sources used in the
+median (`included = true`) and sources dropped by the freshness
+or deviation guard (`included = false`). Always populated even
+if empty — the dashboard renders the full set. </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="price.v1.GetPriceRequest">GetPriceRequest</h3>
+        <p>GetPriceRequest selects an asset by its canonical id.</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>asset_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>Canonical asset id: lowercase symbol used as the bytes32 key on
+chain. Examples: &#34;weth&#34;, &#34;wbtc&#34;, &#34;xau&#34;, &#34;spx&#34;. </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="price.v1.SourceContribution">SourceContribution</h3>
+        <p>SourceContribution is the single-source view of an aggregation</p><p>round — what the price was, how stale it was, and whether the</p><p>aggregator used it.</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>source</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>Source discriminator. Stable identifiers chosen at adapter
+implementation time: &#34;coingecko&#34;, &#34;binance&#34;, &#34;uniswap_v3&#34;,
+&#34;alpha_vantage&#34;, &#34;twelve_data&#34;, &#34;stooq&#34;. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>price</td>
+                  <td><a href="#double">double</a></td>
+                  <td></td>
+                  <td><p>Price reported by this source, in USD, as an IEEE-754 double. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>fetched_at</td>
                   <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
                   <td></td>
-                  <td><p>Timestamp when the user was last updated. </p></td>
+                  <td><p>When price-service retrieved this datum. Bounded by the poller
+interval — typically within 30s of `aggregated_at` for crypto,
+much wider for RWA. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>source_observed_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p>When the upstream reports the price was observed (e.g. Binance
+ticker timestamp, Alpha Vantage close-of-bar). May lag
+fetched_at by hours for end-of-day RWA series. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>age_sec</td>
+                  <td><a href="#int64">int64</a></td>
+                  <td></td>
+                  <td><p>Convenience: `now - source_observed_at` in seconds at the time
+this message was produced. Surfaced on the dashboard&#39;s freshness
+badge — clients SHOULD prefer this over recomputing from
+timestamps because aggregator and client clocks may drift. </p></td>
+                </tr>
+              
+                <tr>
+                  <td>included</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td></td>
+                  <td><p>Whether this source contributed to the median. Sources are
+excluded on fetch error, schema mismatch, or deviation-guard
+rejection. The reason for exclusion is logged server-side; the
+wire format only carries the boolean. </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+
+          
+
+        
+      
+        <h3 id="price.v1.SubscribeRequest">SubscribeRequest</h3>
+        <p>SubscribeRequest selects one or more assets to stream.</p><p>An empty asset_ids list is rejected with INVALID_ARGUMENT;</p><p>callers must opt in explicitly per-asset.</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>asset_ids</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><p>Asset ids to subscribe to. Same id form as GetPriceRequest. </p></td>
                 </tr>
               
             </tbody>
@@ -332,8 +391,8 @@
       
 
       
-        <h3 id="user.v1.UserService">UserService</h3>
-        <p>UserService provides operations for managing user accounts.</p>
+        <h3 id="price.v1.PriceService">PriceService</h3>
+        <p>PriceService is the off-chain aggregation surface of the oracle.</p><p>It owns source polling and exposes the latest USD price per asset</p><p>to internal callers (oracle-service uses it when building</p><p>`fulfillPrice` payloads; rest-api uses it for the dashboard).</p><p>Pricing model: prices flow as IEEE-754 doubles end-to-end inside</p><p>the off-chain pipeline — sources return floats, aggregation runs on</p><p>floats, the wire format carries doubles. Conversion to the on-chain</p><p>int256 representation (Chainlink's 8-decimal scale) happens once,</p><p>inside oracle-service, when it builds the fulfillPrice call. Keep</p><p>the conversion in one place; do not scatter it across services.</p>
         <table class="enum-table">
           <thead>
             <tr><td>Method Name</td><td>Request Type</td><td>Response Type</td><td>Description</td></tr>
@@ -341,17 +400,22 @@
           <tbody>
             
               <tr>
-                <td>GetUser</td>
-                <td><a href="#user.v1.GetUserRequest">GetUserRequest</a></td>
-                <td><a href="#user.v1.User">User</a></td>
-                <td><p>GetUser retrieves a user by ID.</p></td>
+                <td>GetPrice</td>
+                <td><a href="#price.v1.GetPriceRequest">GetPriceRequest</a></td>
+                <td><a href="#price.v1.AggregatedPrice">AggregatedPrice</a></td>
+                <td><p>GetPrice returns the most recently aggregated price for one asset.
+Returns NOT_FOUND if the asset is not tracked.</p></td>
               </tr>
             
               <tr>
-                <td>CreateUser</td>
-                <td><a href="#user.v1.CreateUserRequest">CreateUserRequest</a></td>
-                <td><a href="#user.v1.User">User</a></td>
-                <td><p>CreateUser creates a new user.</p></td>
+                <td>Subscribe</td>
+                <td><a href="#price.v1.SubscribeRequest">SubscribeRequest</a></td>
+                <td><a href="#price.v1.AggregatedPrice">AggregatedPrice</a> stream</td>
+                <td><p>Subscribe streams aggregated prices for the requested assets.
+On stream open, the server pushes the current value for each
+subscribed asset; thereafter it pushes updates as new
+aggregations are produced. The stream stays open until the
+client cancels.</p></td>
               </tr>
             
           </tbody>
