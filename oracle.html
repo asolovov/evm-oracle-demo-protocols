@@ -498,6 +498,16 @@ mined. After 3 replace-by-fee retries we give up and mark
 dropped.</p></td>
               </tr>
             
+              <tr>
+                <td>STATUS_EXPIRED</td>
+                <td>5</td>
+                <td><p>Abandoned before broadcast: the request sat un-priceable (e.g.
+no price for the asset yet) and its TTL elapsed while still
+queued/processing/signing, so it never consumed a nonce. A
+terminal state distinct from STATUS_FAILED — nothing was sent
+on-chain and no nonce was reserved.</p></td>
+              </tr>
+            
           </tbody>
         </table>
       
